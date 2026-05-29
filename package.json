@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
+    "postinstall": "prisma generate",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx --env-file=.env prisma/seed.ts",
@@ -14,6 +15,9 @@
   },
   "prisma": {
     "seed": "tsx --env-file=.env prisma/seed.ts"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["@prisma/client", "prisma", "bcryptjs"]
   },
   "dependencies": {
     "@prisma/client": "5.22.0",
