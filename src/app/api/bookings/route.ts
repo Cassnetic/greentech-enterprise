@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { GT_PRICES } from '@/lib/constants';
+import { classifyError } from '@/lib/db-errors';
 import { gtNextRef } from '@/lib/format';
 import { sendBookingConfirmation } from '@/lib/email';
 
@@ -27,8 +28,14 @@ export async function GET() {
   if (!session?.user?.email) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  const bookings = await prisma.booking.findMany({ orderBy: { createdAt: 'desc' } });
-  return NextResponse.json(bookings);
+  try {
+    const bookings = await prisma.booking.findMany({ orderBy: { createdAt: 'desc' } });
+    return NextResponse.json(bookings);
+  } catch (err) {
+    const c = classifyError(err);
+    console.error('[api/bookings GET]', c.kind, err);
+    return NextResponse.json({ error: c.message, kind: c.kind }, { status: c.status });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -49,48 +56,52 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid size for service' }, { status: 400 });
   }
 
-  // Reject if date is blocked
-  const blocked = await prisma.blockedDate.findUnique({ where: { date: data.date } });
-  if (blocked) {
-    return NextResponse.json({ error: 'Selected date is unavailable' }, { status: 409 });
+  try {
+    // Reject if date is blocked
+    const blocked = await prisma.blockedDate.findUnique({ where: { date: data.date } });
+    if (blocked) {
+      return NextResponse.json({ error: 'Selected date is unavailable' }, { status: 409 });
+    }
+
+    // Authoritative price calculation
+    const baseRate = (GT_PRICES[data.service] as Record<string, number>)[data.size];
+    const total = data.service === 'lorry' ? baseRate * data.days : baseRate;
+
+    // Generate next ref
+    const existing = await prisma.booking.findMany({ select: { id: true } });
+    const id = gtNextRef(existing.map((b) => b.id));
+
+    const created = await prisma.booking.create({
+      data: {
+        id,
+        customer: data.name,
+        phone: data.phone,
+        address: data.address,
+        service: data.service,
+        size: data.size,
+        waste: data.waste,
+        date: data.date,
+        window: data.window,
+        days: data.days,
+        notes: data.notes,
+        total,
+        status: isAdmin && data.status ? data.status : 'pending',
+        payment: isAdmin && data.payment ? data.payment : 'unpaid',
+      },
+    });
+
+    // Best-effort email — failure does not block booking creation.
+    if (process.env.RESEND_DEFAULT_BCC) {
+      sendBookingConfirmation(process.env.RESEND_DEFAULT_BCC, {
+        ...created,
+        createdAt: created.createdAt.toISOString().slice(0, 10),
+      }).catch((e) => console.error('[booking] email failed', e));
+    }
+
+    return NextResponse.json({ id: created.id });
+  } catch (err) {
+    const c = classifyError(err);
+    console.error('[api/bookings POST]', c.kind, err);
+    return NextResponse.json({ error: c.message, kind: c.kind }, { status: c.status });
   }
-
-  // Authoritative price calculation
-  const baseRate = (GT_PRICES[data.service] as Record<string, number>)[data.size];
-  const total = data.service === 'lorry' ? baseRate * data.days : baseRate;
-
-  // Generate next ref
-  const existing = await prisma.booking.findMany({ select: { id: true } });
-  const id = gtNextRef(existing.map((b) => b.id));
-
-  const created = await prisma.booking.create({
-    data: {
-      id,
-      customer: data.name,
-      phone: data.phone,
-      address: data.address,
-      service: data.service,
-      size: data.size,
-      waste: data.waste,
-      date: data.date,
-      window: data.window,
-      days: data.days,
-      notes: data.notes,
-      total,
-      status: isAdmin && data.status ? data.status : 'pending',
-      payment: isAdmin && data.payment ? data.payment : 'unpaid',
-    },
-  });
-
-  // Best-effort email — failure does not block booking creation
-  // (Customers can resend from their confirmation page; we don't yet collect email but
-  // pass admin email for now; real flow would extend schema with customer email.)
-  if (process.env.RESEND_DEFAULT_BCC) {
-    sendBookingConfirmation(process.env.RESEND_DEFAULT_BCC, {
-      ...created,
-      createdAt: created.createdAt.toISOString().slice(0, 10),
-    }).catch((e) => console.error('[booking] email failed', e));
-  }
-
-  return NextResponse.json({ id: created.id });
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { AdminSidebar } from './Sidebar';
+import { AdminMobileTopBar } from './MobileTopBar';
 import { KanbanCard } from './KanbanCard';
 import { BookingDrawer } from './BookingDrawer';
 import { QuickAddDrawer } from './QuickAddDrawer';
@@ -117,19 +118,35 @@ export function AdminBookingsPage({ initialBookings, adminEmail, today, view = '
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div className="flex h-dvh overflow-hidden">
       <AdminSidebar active={isPaymentsView ? 'payments' : 'bookings'} bookings={bookings} adminEmail={adminEmail} />
 
-      <main
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          minWidth: 0,
-        }}
-      >
-        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-line flex flex-wrap items-center gap-3 md:gap-4 bg-surface shrink-0">
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Mobile top bar — sidebar replacement for <md */}
+        <AdminMobileTopBar
+          active={isPaymentsView ? 'payments' : 'bookings'}
+          title={isPaymentsView ? 'Payments' : 'Bookings'}
+          subtitle={
+            isPaymentsView
+              ? `${paymentReview.length} awaiting verification · tap a card to verify`
+              : `${stats.active} active · drag on desktop, tap a card on mobile`
+          }
+          bookings={bookings}
+          adminEmail={adminEmail}
+          action={
+            <button
+              type="button"
+              onClick={() => setQuickAddOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 h-9 px-3 rounded-full bg-accent text-white font-semibold text-[12.5px] shadow-gt-sm active:scale-95 transition-transform"
+              aria-label="New booking"
+            >
+              <Icon name="plus" size={13} /> New
+            </button>
+          }
+        />
+
+        {/* Desktop toolbar */}
+        <div className="hidden md:flex flex-wrap items-center gap-4 px-4 md:px-6 py-3 md:py-4 border-b border-line bg-surface shrink-0">
           <div>
             <div className="flex items-center gap-2">
               <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>
@@ -202,6 +219,42 @@ export function AdminBookingsPage({ initialBookings, adminEmail, today, view = '
             <Icon name="plus" size={14} /> New booking
             <span className="hidden md:inline ml-1.5 font-mono text-[10px] opacity-70">N</span>
           </Btn>
+        </div>
+
+        {/* Mobile filter row — compact segmented control + search collapse */}
+        <div className="md:hidden px-3 py-2.5 border-b border-line bg-surface flex items-center gap-2 overflow-x-auto">
+          <div className="flex gap-1 p-1 bg-bg-2 rounded-lg shrink-0">
+            {([
+              ['all', 'All'],
+              ['roro', 'Roll-off'],
+              ['lorry', 'Lorry'],
+            ] as const).map(([k, l]) => (
+              <button
+                key={k}
+                onClick={() => setFilter(k)}
+                className="px-3 py-1.5 rounded-md text-[12px] font-medium whitespace-nowrap transition-colors"
+                style={{
+                  background: filter === k ? 'var(--gt-surface)' : 'transparent',
+                  color: filter === k ? 'var(--gt-ink)' : 'var(--gt-ink-2)',
+                  fontWeight: filter === k ? 600 : 500,
+                  boxShadow: filter === k ? 'var(--gt-shadow-sm)' : 'none',
+                }}
+              >
+                {l}
+              </button>
+            ))}
+          </div>
+          <div className="relative flex-1 min-w-[140px]">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+              <Icon name="search" size={13} color="var(--gt-ink-3)" />
+            </div>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search…"
+              className="w-full pl-8 pr-3 py-2 border border-line-2 rounded-lg text-[13px] bg-surface outline-none focus:border-accent transition-colors"
+            />
+          </div>
         </div>
 
         <div className="px-4 md:px-6 pt-3.5 grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -296,12 +349,12 @@ function BookingsKanbanView({
   setOpenId,
 }: KanbanProps) {
   return (
-    <div className="grid gap-3.5 min-h-full grid-cols-[280px_280px_280px] md:grid-cols-3">
+    <div className="grid gap-3.5 md:gap-3.5 grid-cols-1 md:grid-cols-3 min-h-full">
       {cols.map((col) => {
         const rows = filtered.filter((b) => b.status === col.key);
         const isDragOver = dragOverCol === col.key;
         return (
-          <div
+          <section
             key={col.key}
             onDragOver={(e) => {
               e.preventDefault();
@@ -319,9 +372,10 @@ function BookingsKanbanView({
               border: '1.5px dashed ' + (isDragOver ? 'var(--gt-accent)' : 'transparent'),
             }}
           >
-            <div className="flex items-center gap-1.5 px-1 py-0.5">
+            <div className="flex items-center gap-2 px-1 py-0.5">
               <StatusPill status={col.key} />
               <span className="font-mono text-[12px] text-ink-3">{rows.length}</span>
+              <span className="flex-1 h-px bg-line/60 ml-1.5 md:hidden" aria-hidden />
             </div>
             {rows.map((b) => (
               <KanbanCard
@@ -335,10 +389,10 @@ function BookingsKanbanView({
             ))}
             {rows.length === 0 && (
               <div className="text-center py-3.5 px-3 text-[12px] text-ink-3 border border-dashed border-line-2 rounded-lg">
-                Drop bookings here
+                Nothing here yet
               </div>
             )}
-          </div>
+          </section>
         );
       })}
     </div>

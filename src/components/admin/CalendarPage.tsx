@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { AdminSidebar } from './Sidebar';
+import { AdminMobileTopBar } from './MobileTopBar';
 import { Btn } from '../ui/Btn';
 import { Icon } from '../ui/Icon';
 import { Pill } from '../ui/Pill';
@@ -79,19 +80,19 @@ export function AdminCalendarPage({ bookings, initialBlocks, adminEmail }: Props
   };
 
   return (
-    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+    <div className="flex h-dvh overflow-hidden">
       <AdminSidebar active="calendar" bookings={bookings} adminEmail={adminEmail} />
 
-      <main
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          minWidth: 0,
-        }}
-      >
-        <div className="px-4 md:px-6 py-3 md:py-4 border-b border-line flex flex-wrap items-center gap-3 md:gap-4 bg-surface shrink-0">
+      <main className="flex-1 flex flex-col overflow-hidden min-w-0">
+        <AdminMobileTopBar
+          active="calendar"
+          title="Availability"
+          subtitle="Tap a date to block or unblock it"
+          bookings={bookings}
+          adminEmail={adminEmail}
+        />
+
+        <div className="hidden md:flex flex-wrap items-center gap-4 px-4 md:px-6 py-3 md:py-4 border-b border-line bg-surface shrink-0">
           <div>
             <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Availability</h1>
             <div style={{ fontSize: 12, color: 'var(--gt-ink-3)' }}>
@@ -126,48 +127,83 @@ export function AdminCalendarPage({ bookings, initialBlocks, adminEmail }: Props
           </div>
         </div>
 
-        <div className="gt-scroll" style={{ flex: 1, overflow: 'auto', padding: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <Btn size="sm" onClick={() => navMonth(-1)}>
-              <Icon name="arrow-l" size={14} />
-            </Btn>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: 22,
-                fontWeight: 700,
-                flex: 1,
-                textAlign: 'center',
-                letterSpacing: '-0.01em',
-              }}
+        <div className="gt-scroll flex-1 overflow-auto p-3 md:p-6">
+          {/* Month nav */}
+          <div className="flex items-center gap-3 mb-3 md:mb-4">
+            <button
+              type="button"
+              onClick={() => navMonth(-1)}
+              aria-label="Previous month"
+              className="w-10 h-10 md:w-9 md:h-9 rounded-full border border-line-2 bg-surface text-ink-2 flex items-center justify-center active:scale-95 transition-transform hover:bg-bg-2"
             >
+              <Icon name="arrow-l" size={14} />
+            </button>
+            <h2 className="m-0 flex-1 text-center font-bold tracking-[-0.01em] text-[20px] md:text-[22px]">
               {monthName}
             </h2>
-            <Btn size="sm" onClick={() => navMonth(1)}>
+            <button
+              type="button"
+              onClick={() => navMonth(1)}
+              aria-label="Next month"
+              className="w-10 h-10 md:w-9 md:h-9 rounded-full border border-line-2 bg-surface text-ink-2 flex items-center justify-center active:scale-95 transition-transform hover:bg-bg-2"
+            >
               <Icon name="arrow-r" size={14} />
-            </Btn>
+            </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8, marginBottom: 8 }}>
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
+          {/* Mobile service filter — affects what gets blocked when tapping */}
+          <div className="md:hidden flex items-center gap-2 mb-3">
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-3 font-semibold shrink-0">
+              Block scope
+            </span>
+            <div className="flex gap-1 p-1 bg-bg-2 rounded-lg shrink-0">
+              {([
+                ['both', 'All'],
+                ['roro', 'Roll-off'],
+                ['lorry', 'Lorry'],
+              ] as const).map(([k, l]) => (
+                <button
+                  key={k}
+                  onClick={() => setServiceFilter(k)}
+                  className="px-2.5 py-1 rounded-md text-[11.5px] font-medium whitespace-nowrap transition-colors"
+                  style={{
+                    background: serviceFilter === k ? 'var(--gt-surface)' : 'transparent',
+                    color: serviceFilter === k ? 'var(--gt-ink)' : 'var(--gt-ink-2)',
+                    fontWeight: serviceFilter === k ? 600 : 500,
+                    boxShadow: serviceFilter === k ? 'var(--gt-shadow-sm)' : 'none',
+                  }}
+                >
+                  {l}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Weekday header — single letters on mobile, abbrev on desktop */}
+          <div className="grid grid-cols-7 gap-1 md:gap-2 mb-1 md:mb-2">
+            {(
+              [
+                ['Sun', 'S'],
+                ['Mon', 'M'],
+                ['Tue', 'T'],
+                ['Wed', 'W'],
+                ['Thu', 'T'],
+                ['Fri', 'F'],
+                ['Sat', 'S'],
+              ] as const
+            ).map(([full, short], idx) => (
               <div
-                key={d}
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  color: 'var(--gt-ink-3)',
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5,
-                  textAlign: 'center',
-                  paddingBottom: 4,
-                }}
+                key={idx}
+                className="text-center pb-1 md:pb-1.5 font-mono text-[10px] md:text-[11px] font-semibold uppercase tracking-[0.12em] text-ink-3"
               >
-                {d}
+                <span className="md:hidden">{short}</span>
+                <span className="hidden md:inline">{full}</span>
               </div>
             ))}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 8 }}>
+          {/* Month grid — square cells on mobile, taller on desktop */}
+          <div className="grid grid-cols-7 gap-1 md:gap-2">
             {cells.map((d, i) => {
               if (d == null) return <div key={i} />;
               const iso = isoFor(d);
@@ -177,95 +213,114 @@ export function AdminCalendarPage({ bookings, initialBlocks, adminEmail }: Props
               const isToday = iso === TODAY_ISO;
               const bks = dayBookings(d);
               const isBlocked = !!blocked || sun;
+              const roroCount = bks.filter((b) => b.service === 'roro').length;
+              const lorryCount = bks.filter((b) => b.service === 'lorry').length;
 
               return (
                 <button
                   key={i}
                   type="button"
-                  className={'gt-cal-cell' + (isPast ? ' is-past' : '')}
+                  className={
+                    'gt-cal-cell relative flex flex-col aspect-square md:aspect-auto md:min-h-[100px] p-1.5 md:p-2.5 rounded-md md:rounded-lg text-left overflow-hidden' +
+                    (isPast ? ' is-past pointer-events-none' : '')
+                  }
+                  disabled={isPast}
+                  aria-label={`${monthName} ${d}${isBlocked ? ' — blocked' : ''}${isToday ? ' — today' : ''}`}
                   onClick={() => toggleBlock(d)}
                   style={{
-                    minHeight: 100,
-                    padding: 10,
                     border: '1.5px solid ' + (isToday ? 'var(--gt-accent)' : 'var(--gt-line)'),
-                    borderRadius: 'var(--gt-radius-sm)',
                     background: isBlocked
                       ? 'repeating-linear-gradient(135deg, var(--gt-bg-2) 0 8px, var(--gt-surface-2) 8px 10px)'
                       : 'var(--gt-surface)',
-                    opacity: isPast ? 0.5 : 1,
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 4,
-                    cursor: isPast ? 'default' : 'pointer',
-                    textAlign: 'left',
-                    fontFamily: 'inherit',
+                    opacity: isPast ? 0.4 : 1,
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  {/* Today badge — top right, desktop only (mobile uses the green border) */}
+                  {isToday && (
                     <span
-                      className="gt-mono"
-                      style={{
-                        fontSize: 13,
-                        fontWeight: isToday ? 700 : 500,
-                        color: isToday ? 'var(--gt-accent)' : 'var(--gt-ink)',
-                      }}
+                      aria-hidden
+                      className="hidden md:inline-block absolute top-1.5 right-1.5 font-mono text-[8.5px] font-bold uppercase tracking-[0.12em]"
+                      style={{ color: 'var(--gt-accent)' }}
                     >
-                      {d}
+                      today
                     </span>
-                    {isToday && (
-                      <span
-                        style={{
-                          fontSize: 9,
-                          color: 'var(--gt-accent)',
-                          fontWeight: 600,
-                          textTransform: 'uppercase',
-                          letterSpacing: 0.5,
-                        }}
-                      >
-                        today
-                      </span>
-                    )}
-                  </div>
-
-                  {isBlocked && !isPast && (
-                    <Pill tone="warn" style={{ fontSize: 9, padding: '1px 6px', alignSelf: 'flex-start' }}>
-                      {sun ? 'closed' : 'blocked'}
-                    </Pill>
                   )}
 
-                  {!isBlocked && !isPast && (
-                    <div
+                  {/* Day number — anchor of the cell */}
+                  <span
+                    className="font-mono leading-none"
+                    style={{
+                      fontSize: 'clamp(13px, 3.6vw, 15px)',
+                      fontWeight: isToday ? 700 : 500,
+                      color: isToday ? 'var(--gt-accent)' : 'var(--gt-ink)',
+                    }}
+                  >
+                    {d}
+                  </span>
+
+                  {/* Blocked / closed label */}
+                  {isBlocked && !isPast && (
+                    <span
+                      className="mt-1 self-start font-mono font-bold uppercase tracking-[0.08em] rounded-sm"
                       style={{
-                        fontFamily: 'var(--gt-mono)',
-                        fontSize: 10,
-                        color: 'var(--gt-ink-3)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 2,
+                        fontSize: 'clamp(8px, 2.2vw, 9.5px)',
+                        padding: '1px 4px',
+                        background: 'var(--gt-warn-soft)',
+                        color: 'var(--gt-warn)',
                       }}
                     >
-                      <div>RR · {Math.max(0, 4 - bks.filter((b) => b.service === 'roro').length)}/4</div>
-                      <div>LD · {Math.max(0, 3 - bks.filter((b) => b.service === 'lorry').length)}/3</div>
+                      {sun ? 'closed' : 'blocked'}
+                    </span>
+                  )}
+
+                  {/* Slot counts — desktop only (mobile is too tight) */}
+                  {!isBlocked && !isPast && (
+                    <div className="hidden md:flex flex-col gap-0.5 mt-1 font-mono text-[10px] text-ink-3 leading-tight">
+                      <div>RR · {Math.max(0, 4 - roroCount)}/4</div>
+                      <div>LD · {Math.max(0, 3 - lorryCount)}/3</div>
                     </div>
                   )}
 
+                  {/* Bottom indicator strip — booking presence */}
                   {bks.length > 0 && !isBlocked && (
-                    <div style={{ marginTop: 'auto', display: 'flex', gap: 2 }}>
-                      {bks.slice(0, 3).map((b) => (
-                        <span
-                          key={b.id}
-                          style={{
-                            width: 8,
-                            height: 8,
-                            borderRadius: 2,
-                            background: b.service === 'roro' ? 'var(--gt-accent)' : 'var(--gt-info)',
-                          }}
-                          title={b.customer}
-                        />
-                      ))}
-                      {bks.length > 3 && (
-                        <span style={{ fontSize: 9, color: 'var(--gt-ink-3)' }}>+{bks.length - 3}</span>
-                      )}
+                    <div className="mt-auto flex items-end gap-0.5 pt-1">
+                      {/* Mobile: simple color stripe spanning the bottom */}
+                      <div className="md:hidden flex w-full h-[3px] rounded-full overflow-hidden">
+                        {roroCount > 0 && (
+                          <span
+                            className="block h-full"
+                            style={{
+                              flex: roroCount,
+                              background: 'var(--gt-accent)',
+                            }}
+                          />
+                        )}
+                        {lorryCount > 0 && (
+                          <span
+                            className="block h-full"
+                            style={{
+                              flex: lorryCount,
+                              background: 'var(--gt-info)',
+                            }}
+                          />
+                        )}
+                      </div>
+                      {/* Desktop: discrete dots */}
+                      <div className="hidden md:flex gap-1">
+                        {bks.slice(0, 3).map((b) => (
+                          <span
+                            key={b.id}
+                            className="block w-2 h-2 rounded-sm"
+                            style={{
+                              background: b.service === 'roro' ? 'var(--gt-accent)' : 'var(--gt-info)',
+                            }}
+                            title={b.customer}
+                          />
+                        ))}
+                        {bks.length > 3 && (
+                          <span className="text-[9px] text-ink-3 leading-none">+{bks.length - 3}</span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </button>
@@ -273,55 +328,72 @@ export function AdminCalendarPage({ bookings, initialBlocks, adminEmail }: Props
             })}
           </div>
 
-          <div
-            style={{
-              display: 'flex',
-              gap: 18,
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              marginTop: 18,
-              padding: '14px 16px',
-              background: 'var(--gt-bg-2)',
-              borderRadius: 8,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div
-                style={{
-                  width: 14,
-                  height: 14,
-                  border: '1.5px solid var(--gt-line)',
-                  borderRadius: 4,
-                  background: 'var(--gt-surface)',
-                }}
-              />
-              <span style={{ fontSize: 12, color: 'var(--gt-ink-2)' }}>Available · with slot counts</span>
+          {/* Compact legend — mobile shows 2 essentials, desktop shows full */}
+          <div className="mt-4 md:mt-5 rounded-lg bg-bg-2 px-3.5 md:px-4 py-3 md:py-3.5">
+            {/* Mobile: just blocked + bookings dot meaning */}
+            <div className="md:hidden grid grid-cols-2 gap-y-2 gap-x-3 text-[11.5px] text-ink-2">
+              <div className="flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className="w-3.5 h-3.5 rounded-sm border border-line"
+                  style={{
+                    background:
+                      'repeating-linear-gradient(135deg, var(--gt-bg-2) 0 5px, var(--gt-surface-2) 5px 6px)',
+                  }}
+                />
+                <span>Blocked / closed</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span aria-hidden className="block w-3 h-[3px] rounded-full bg-accent" />
+                <span>Roll-off booked</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className="w-3.5 h-3.5 rounded-sm border-[1.5px]"
+                  style={{ borderColor: 'var(--gt-accent)' }}
+                />
+                <span>Today</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  aria-hidden
+                  className="block w-3 h-[3px] rounded-full"
+                  style={{ background: 'var(--gt-info)' }}
+                />
+                <span>Lorry booked</span>
+              </div>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div
-                style={{
-                  width: 14,
-                  height: 14,
-                  border: '1.5px solid var(--gt-line)',
-                  borderRadius: 4,
-                  background:
-                    'repeating-linear-gradient(135deg, var(--gt-bg-2) 0 5px, var(--gt-surface-2) 5px 6px)',
-                }}
-              />
-              <span style={{ fontSize: 12, color: 'var(--gt-ink-2)' }}>Blocked (manual or Sunday)</span>
+
+            {/* Desktop: full legend with tip */}
+            <div className="hidden md:flex items-center gap-5 flex-wrap">
+              <div className="flex items-center gap-1.5">
+                <div className="w-3.5 h-3.5 rounded-sm border border-line bg-surface" />
+                <span className="text-[12px] text-ink-2">Available · with slot counts</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div
+                  className="w-3.5 h-3.5 rounded-sm border border-line"
+                  style={{
+                    background:
+                      'repeating-linear-gradient(135deg, var(--gt-bg-2) 0 5px, var(--gt-surface-2) 5px 6px)',
+                  }}
+                />
+                <span className="text-[12px] text-ink-2">Blocked (manual or Sunday)</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-sm bg-accent" />
+                <span className="text-[12px] text-ink-2">Roll-off booking</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-sm" style={{ background: 'var(--gt-info)' }} />
+                <span className="text-[12px] text-ink-2">Lorry booking</span>
+              </div>
+              <div className="flex-1" />
+              <span className="text-[12px] text-ink-3">
+                Tip: click date to toggle · RR = Roll-off (4/day), LD = Lorry (3/day)
+              </span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--gt-accent)' }} />
-              <span style={{ fontSize: 12, color: 'var(--gt-ink-2)' }}>Roll-off booking</span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--gt-info)' }} />
-              <span style={{ fontSize: 12, color: 'var(--gt-ink-2)' }}>Lorry booking</span>
-            </div>
-            <div style={{ flex: 1 }} />
-            <span style={{ fontSize: 12, color: 'var(--gt-ink-3)' }}>
-              Tip: click date to toggle · RR = Roll-on/Roll-off Bin (4 slots/day), LD = Lorry Delta (3 slots/day)
-            </span>
           </div>
         </div>
       </main>

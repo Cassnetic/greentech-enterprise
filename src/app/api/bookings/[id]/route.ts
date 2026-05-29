@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { classifyError } from '@/lib/db-errors';
 
 const patchSchema = z.object({
   status: z.enum(['pending', 'confirmed', 'completed', 'cancelled']).optional(),
@@ -9,9 +10,15 @@ const patchSchema = z.object({
 });
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
-  const booking = await prisma.booking.findUnique({ where: { id: params.id } });
-  if (!booking) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  return NextResponse.json(booking);
+  try {
+    const booking = await prisma.booking.findUnique({ where: { id: params.id } });
+    if (!booking) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return NextResponse.json(booking);
+  } catch (err) {
+    const c = classifyError(err);
+    console.error('[api/bookings/:id GET]', c.kind, err);
+    return NextResponse.json({ error: c.message, kind: c.kind }, { status: c.status });
+  }
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
@@ -26,19 +33,25 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
   }
 
-  const existing = await prisma.booking.findUnique({ where: { id: params.id } });
-  if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  try {
+    const existing = await prisma.booking.findUnique({ where: { id: params.id } });
+    if (!existing) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  // Verifying payment when current status is 'pending' auto-advances to 'confirmed' (mirrors prototype).
-  const updates: { status?: 'pending' | 'confirmed' | 'completed' | 'cancelled'; payment?: 'unpaid' | 'review' | 'paid' } = { ...parsed.data };
-  if (parsed.data.payment === 'paid' && existing.status === 'pending' && !parsed.data.status) {
-    updates.status = 'confirmed';
+    // Verifying payment when current status is 'pending' auto-advances to 'confirmed' (mirrors prototype).
+    const updates: { status?: 'pending' | 'confirmed' | 'completed' | 'cancelled'; payment?: 'unpaid' | 'review' | 'paid' } = { ...parsed.data };
+    if (parsed.data.payment === 'paid' && existing.status === 'pending' && !parsed.data.status) {
+      updates.status = 'confirmed';
+    }
+
+    const updated = await prisma.booking.update({
+      where: { id: params.id },
+      data: updates,
+    });
+
+    return NextResponse.json(updated);
+  } catch (err) {
+    const c = classifyError(err);
+    console.error('[api/bookings/:id PATCH]', c.kind, err);
+    return NextResponse.json({ error: c.message, kind: c.kind }, { status: c.status });
   }
-
-  const updated = await prisma.booking.update({
-    where: { id: params.id },
-    data: updates,
-  });
-
-  return NextResponse.json(updated);
 }

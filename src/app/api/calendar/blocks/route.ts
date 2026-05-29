@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { classifyError } from '@/lib/db-errors';
 
 const blockSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -10,8 +11,14 @@ const blockSchema = z.object({
 });
 
 export async function GET() {
-  const blocks = await prisma.blockedDate.findMany();
-  return NextResponse.json(blocks);
+  try {
+    const blocks = await prisma.blockedDate.findMany();
+    return NextResponse.json(blocks);
+  } catch (err) {
+    const c = classifyError(err);
+    console.error('[api/calendar/blocks GET]', c.kind, err);
+    return NextResponse.json({ error: c.message, kind: c.kind }, { status: c.status });
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -25,12 +32,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
   }
 
-  const block = await prisma.blockedDate.upsert({
-    where: { date: parsed.data.date },
-    update: { scope: parsed.data.scope, reason: parsed.data.reason },
-    create: parsed.data,
-  });
-  return NextResponse.json(block);
+  try {
+    const block = await prisma.blockedDate.upsert({
+      where: { date: parsed.data.date },
+      update: { scope: parsed.data.scope, reason: parsed.data.reason },
+      create: parsed.data,
+    });
+    return NextResponse.json(block);
+  } catch (err) {
+    const c = classifyError(err);
+    console.error('[api/calendar/blocks POST]', c.kind, err);
+    return NextResponse.json({ error: c.message, kind: c.kind }, { status: c.status });
+  }
 }
 
 export async function DELETE(req: NextRequest) {
@@ -42,6 +55,12 @@ export async function DELETE(req: NextRequest) {
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return NextResponse.json({ error: 'Missing or invalid `date`' }, { status: 400 });
   }
-  await prisma.blockedDate.delete({ where: { date } }).catch(() => null);
-  return NextResponse.json({ ok: true });
+  try {
+    await prisma.blockedDate.delete({ where: { date } }).catch(() => null);
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    const c = classifyError(err);
+    console.error('[api/calendar/blocks DELETE]', c.kind, err);
+    return NextResponse.json({ error: c.message, kind: c.kind }, { status: c.status });
+  }
 }

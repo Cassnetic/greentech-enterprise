@@ -91,16 +91,7 @@ export function LandingPage() {
                 style={{ padding: 18, display: 'flex', gap: 16 }}
                 onClick={() => goBook('roro')}
               >
-                <div
-                  style={{
-                    width: 130,
-                    height: 100,
-                    flexShrink: 0,
-                    borderRadius: 'var(--gt-radius-sm)',
-                    overflow: 'hidden',
-                    background: 'var(--gt-bg-2)',
-                  }}
-                >
+                <div className="shrink-0 w-[104px] h-[88px] sm:w-[130px] sm:h-[100px] rounded-gt-sm overflow-hidden bg-bg-2">
                   <Image
                     src="/roro.png"
                     alt="Roll-on/Roll-off bin"
@@ -137,16 +128,7 @@ export function LandingPage() {
                 style={{ padding: 18, display: 'flex', gap: 16 }}
                 onClick={() => goBook('lorry')}
               >
-                <div
-                  style={{
-                    width: 130,
-                    height: 100,
-                    flexShrink: 0,
-                    borderRadius: 'var(--gt-radius-sm)',
-                    overflow: 'hidden',
-                    background: 'var(--gt-bg-2)',
-                  }}
-                >
+                <div className="shrink-0 w-[104px] h-[88px] sm:w-[130px] sm:h-[100px] rounded-gt-sm overflow-hidden bg-bg-2">
                   <Image
                     src="/lorry.png"
                     alt="Lorry Delta"
@@ -268,22 +250,22 @@ export function LandingPage() {
 
               {/* Stat block + Cassey card */}
               <div className="flex flex-col gap-3">
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {(
                     [
                       ['7+', 'years operating'],
                       ['1.2k', 'bins delivered'],
-                      ['4', 'lorries on the road'],
+                      ['4', 'lorries on road'],
                     ] as const
                   ).map(([n, label]) => (
                     <div
                       key={label}
-                      className="gt-card flex flex-col gap-1 p-4"
+                      className="gt-card flex flex-col gap-1 p-3 sm:p-4"
                     >
-                      <div className="font-mono text-[22px] md:text-[26px] font-bold text-ink leading-none tracking-[-0.02em]">
+                      <div className="font-mono text-[20px] sm:text-[22px] md:text-[26px] font-bold text-ink leading-none tracking-[-0.02em]">
                         {n}
                       </div>
-                      <div className="text-[11px] uppercase tracking-[0.08em] text-ink-3 font-medium">
+                      <div className="text-[10.5px] sm:text-[11px] uppercase tracking-[0.06em] sm:tracking-[0.08em] text-ink-3 font-medium leading-tight">
                         {label}
                       </div>
                     </div>

@@ -485,12 +485,23 @@ select {
 
 /* Calendar day cell */
 .gt-cal-cell {
-  transition: background 0.12s ease, border-color 0.12s ease;
+  font-family: inherit;
+  transition: border-color 0.14s ease, transform 0.12s ease, box-shadow 0.14s ease;
   cursor: pointer;
   user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
-.gt-cal-cell:hover:not(.is-past) {
-  border-color: var(--gt-accent);
+@media (hover: hover) {
+  .gt-cal-cell:hover:not(.is-past) {
+    border-color: var(--gt-accent) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--gt-accent) 16%, transparent);
+  }
+}
+.gt-cal-cell:active:not(.is-past) {
+  transform: scale(0.96);
+}
+.gt-cal-cell.is-past {
+  cursor: default;
 }
 
 /* Status pill colors */
@@ -539,6 +550,49 @@ select {
   height: 100%;
   object-fit: cover;
   display: block;
+}
+
+/* Mobile slide-over menu (rendered via portal to <body>) */
+.gt-mobile-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: block;
+}
+.gt-mobile-menu__back {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 28, 22, 0.52);
+  border: 0;
+  cursor: pointer;
+  animation: gtMenuBackIn 0.18s ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+.gt-mobile-menu__panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(88vw, 380px);
+  background: var(--gt-surface);
+  box-shadow: -20px 0 48px rgba(20, 28, 22, 0.18);
+  display: flex;
+  flex-direction: column;
+  animation: gtMenuSlideIn 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+  padding-top: env(safe-area-inset-top);
+  overflow: hidden;
+}
+@keyframes gtMenuBackIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes gtMenuSlideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gt-mobile-menu__back,
+  .gt-mobile-menu__panel { animation: none; }
 }
 
 /* Mobile-only adjustments that can't be cleanly expressed inline with Tailwind */
