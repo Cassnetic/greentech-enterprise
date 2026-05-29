@@ -1,0 +1,80 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Service {
+  roro
+  lorry
+}
+
+enum WasteType {
+  general
+  construction
+}
+
+enum BookingWindow {
+  am
+  pm
+  flex
+}
+
+enum BookingStatus {
+  pending
+  confirmed
+  completed
+  cancelled
+}
+
+enum PaymentStatus {
+  unpaid
+  review
+  paid
+}
+
+enum BlockScope {
+  both
+  roro
+  lorry
+}
+
+model Booking {
+  id        String        @id // e.g. "GT-0185"
+  customer  String
+  phone     String
+  address   String
+  service   Service
+  size      String // "10yd" | "20yd" | "40yd" | "1T" | "3T" | "5T"
+  waste     WasteType
+  date      String // ISO YYYY-MM-DD (local date, no TZ ambiguity)
+  window    BookingWindow
+  days      Int           @default(1)
+  notes     String        @default("")
+  total     Int // RM, integer
+  status    BookingStatus @default(pending)
+  payment   PaymentStatus @default(unpaid)
+  proofUrl  String?
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  @@index([date])
+  @@index([status])
+  @@index([payment])
+}
+
+model BlockedDate {
+  date   String     @id // ISO YYYY-MM-DD
+  scope  BlockScope @default(both)
+  reason String     @default("")
+}
+
+model AdminUser {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  hashedPassword String
+  createdAt      DateTime @default(now())
+}
