@@ -17,9 +17,14 @@
     "seed": "tsx --env-file=.env prisma/seed.ts"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["@prisma/client", "prisma", "bcryptjs"]
+    "onlyBuiltDependencies": [
+      "@prisma/client",
+      "prisma",
+      "bcryptjs"
+    ]
   },
   "dependencies": {
+    "@hookform/resolvers": "^3.10.0",
     "@prisma/client": "5.22.0",
     "@supabase/supabase-js": "2.46.1",
     "bcryptjs": "2.4.3",
@@ -31,6 +36,7 @@
     "radix-ui": "^1.4.3",
     "react": "18.3.1",
     "react-dom": "18.3.1",
+    "react-hook-form": "^7.76.1",
     "resend": "4.0.1",
     "shadcn": "^4.8.2",
     "tailwind-merge": "^3.6.0",

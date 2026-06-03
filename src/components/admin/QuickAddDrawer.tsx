@@ -8,14 +8,18 @@ import {
   BookingDTO,
   BookingStatus,
   BookingWindow,
-  GT_PRICES,
+  GT_COUNTRY,
   GT_SIZE_LABELS,
   GT_WASTE,
+  GT_WHATSAPP_NAME,
   GT_WINDOWS,
+  LorrySize,
   PaymentStatus,
+  RoroSize,
   Service,
   WasteType,
 } from '@/lib/constants';
+import { computeBookingPrice } from '@/lib/pricing';
 import { gtFormatMoney } from '@/lib/format';
 
 interface Props {
@@ -30,6 +34,8 @@ interface FormState {
   name: string;
   phone: string;
   address: string;
+  city: string;
+  state: string;
   date: string;
   window: BookingWindow;
   days: number;
@@ -37,6 +43,9 @@ interface FormState {
   status: BookingStatus;
   payment: PaymentStatus;
 }
+
+const VALID_SIZES = { roro: ['std'], lorry: ['small', 'cargoarm'] } as const;
+const DEFAULT_SIZE = { roro: 'std', lorry: 'cargoarm' } as const;
 
 function tomorrowIso(): string {
   const d = new Date();
@@ -47,11 +56,13 @@ function tomorrowIso(): string {
 function defaultForm(): FormState {
   return {
     service: 'roro',
-    size: '20yd',
+    size: 'std',
     waste: 'general',
     name: '',
     phone: '',
     address: '',
+    city: '',
+    state: 'Sabah',
     date: tomorrowIso(),
     window: 'flex',
     days: 1,
@@ -69,10 +80,8 @@ export function QuickAddDrawer({ onClose, onCreated }: Props) {
   // Sync size when service changes (different valid sizes per service)
   useEffect(() => {
     setForm((f) => {
-      const validSizes = f.service === 'roro' ? ['10yd', '20yd', '40yd'] : ['1T', '3T', '5T'];
-      return validSizes.includes(f.size)
-        ? f
-        : { ...f, size: f.service === 'roro' ? '20yd' : '3T' };
+      const validSizes: readonly string[] = VALID_SIZES[f.service];
+      return validSizes.includes(f.size) ? f : { ...f, size: DEFAULT_SIZE[f.service] };
     });
   }, [form.service]);
 
@@ -85,18 +94,30 @@ export function QuickAddDrawer({ onClose, onCreated }: Props) {
     return () => window.removeEventListener('keydown', handle);
   }, [onClose, submitting]);
 
-  const estimated = useMemo(() => {
-    const base = (GT_PRICES[form.service] as Record<string, number>)[form.size] ?? 0;
-    return form.service === 'lorry' ? base * Math.max(1, form.days) : base;
-  }, [form.service, form.size, form.days]);
+  const priceResult = useMemo(
+    () =>
+      computeBookingPrice({
+        service: form.service,
+        size: form.size,
+        city: form.city,
+        days: form.days,
+      }),
+    [form.service, form.size, form.city, form.days],
+  );
 
-  const sizes = form.service === 'roro' ? ['10yd', '20yd', '40yd'] : ['1T', '3T', '5T'];
+  const sizes: readonly string[] = VALID_SIZES[form.service];
   const sizeLabels = form.service === 'roro' ? GT_SIZE_LABELS.roro : GT_SIZE_LABELS.lorry;
+  const sizeLabelFor = (s: string) =>
+    form.service === 'roro'
+      ? GT_SIZE_LABELS.roro[s as RoroSize] ?? s
+      : GT_SIZE_LABELS.lorry[s as LorrySize] ?? s;
 
   const isValid =
     form.name.trim().length > 0 &&
     /^[\d\s+\-]{8,}$/.test(form.phone) &&
     form.address.trim().length > 0 &&
+    form.city.trim().length > 0 &&
+    form.state.trim().length > 0 &&
     /^\d{4}-\d{2}-\d{2}$/.test(form.date);
 
   async function submit() {
@@ -111,6 +132,9 @@ export function QuickAddDrawer({ onClose, onCreated }: Props) {
           name: form.name.trim(),
           phone: form.phone.trim(),
           address: form.address.trim(),
+          city: form.city.trim(),
+          state: form.state.trim(),
+          country: GT_COUNTRY,
           service: form.service,
           size: form.size,
           waste: form.waste,
@@ -133,6 +157,8 @@ export function QuickAddDrawer({ onClose, onCreated }: Props) {
         customer: form.name.trim(),
         phone: form.phone.trim(),
         address: form.address.trim(),
+        city: form.city.trim(),
+        state: form.state.trim(),
         service: form.service,
         size: form.size,
         waste: form.waste,
@@ -140,7 +166,8 @@ export function QuickAddDrawer({ onClose, onCreated }: Props) {
         window: form.window,
         days: form.service === 'lorry' ? form.days : 1,
         notes: form.notes.trim(),
-        total: estimated,
+        total: priceResult.total,
+        needsQuote: priceResult.needsQuote,
         status: form.status,
         payment: form.payment,
         proofUrl: null,
@@ -216,14 +243,33 @@ export function QuickAddDrawer({ onClose, onCreated }: Props) {
                   placeholder="+60 12 345 6789"
                 />
               </Field>
-              <Field label="Address">
+              <Field label="Street address">
                 <Textarea
                   rows={2}
                   value={form.address}
                   onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                  placeholder="Drop-off site / pickup address"
+                  placeholder="Lot / building / street — drop-off or pickup"
                 />
               </Field>
+              <div className="grid grid-cols-3 gap-2">
+                <Field label="City / town">
+                  <Input
+                    value={form.city}
+                    onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
+                    placeholder="e.g. Kota Kinabalu"
+                  />
+                </Field>
+                <Field label="State">
+                  <Input
+                    value={form.state}
+                    onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
+                    placeholder="e.g. Sabah"
+                  />
+                </Field>
+                <Field label="Country">
+                  <Input value={GT_COUNTRY} disabled readOnly />
+                </Field>
+              </div>
             </div>
           </Section>
 
@@ -237,7 +283,7 @@ export function QuickAddDrawer({ onClose, onCreated }: Props) {
                 >
                   {sizes.map((s) => (
                     <option key={s} value={s}>
-                      {sizeLabels[s as keyof typeof sizeLabels]}
+                      {sizeLabelFor(s)}
                     </option>
                   ))}
                 </Select>
@@ -341,17 +387,27 @@ export function QuickAddDrawer({ onClose, onCreated }: Props) {
           <div className="rounded-xl border border-accent-soft-2 bg-accent-soft px-4 py-3.5 flex items-center justify-between">
             <div className="flex flex-col">
               <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-accent-2 font-semibold">
-                Estimated total
+                {priceResult.needsQuote ? 'Outstation' : 'Estimated total'}
               </span>
               <span className="text-[11.5px] text-ink-2">
                 {form.service === 'lorry'
-                  ? `${sizeLabels[form.size as keyof typeof sizeLabels]} × ${form.days} day${form.days > 1 ? 's' : ''}`
-                  : sizeLabels[form.size as keyof typeof sizeLabels]}
+                  ? `${sizeLabelFor(form.size)} × ${form.days} day${form.days > 1 ? 's' : ''}`
+                  : sizeLabelFor(form.size)}
+                {!priceResult.needsQuote && ` · ${priceResult.zone === 'kk' ? 'Kota Kinabalu' : 'Penampang'}`}
               </span>
             </div>
-            <span className="font-mono text-[24px] font-bold tabular-nums text-ink tracking-[-0.02em]">
-              {gtFormatMoney(estimated)}
-            </span>
+            {priceResult.needsQuote ? (
+              <span className="text-[15px] font-bold tracking-[-0.01em] text-amber text-right">
+                Quote pending<br />
+                <span className="font-normal text-[10.5px] text-ink-3 normal-case">
+                  {GT_WHATSAPP_NAME} confirms via WhatsApp
+                </span>
+              </span>
+            ) : (
+              <span className="font-mono text-[24px] font-bold tabular-nums text-ink tracking-[-0.02em]">
+                {gtFormatMoney(priceResult.total)}
+              </span>
+            )}
           </div>
 
           {error && (

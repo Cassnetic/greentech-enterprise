@@ -2,15 +2,17 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { GT_PRICES } from '@/lib/constants';
 import { classifyError } from '@/lib/db-errors';
 import { gtNextRef } from '@/lib/format';
 import { sendBookingConfirmation } from '@/lib/email';
+import { computeBookingPrice } from '@/lib/pricing';
 
 const createSchema = z.object({
   name: z.string().min(1).max(120),
   phone: z.string().regex(/^[\d\s+\-]{8,}$/),
   address: z.string().min(1).max(500),
+  city: z.string().min(1).max(120),
+  state: z.string().min(1).max(120),
   service: z.enum(['roro', 'lorry']),
   size: z.string(),
   waste: z.enum(['general', 'construction']),
@@ -22,6 +24,11 @@ const createSchema = z.object({
   status: z.enum(['pending', 'confirmed', 'completed', 'cancelled']).optional(),
   payment: z.enum(['unpaid', 'review', 'paid']).optional(),
 });
+
+const VALID_SIZES = {
+  roro: ['std'],
+  lorry: ['small', 'cargoarm'],
+} as const;
 
 export async function GET() {
   const session = await auth();
@@ -49,25 +56,24 @@ export async function POST(req: NextRequest) {
   }
   const data = parsed.data;
 
-  // Validate size against service
-  const validSizes =
-    data.service === 'roro' ? ['10yd', '20yd', '40yd'] : ['1T', '3T', '5T'];
-  if (!validSizes.includes(data.size)) {
+  if (!VALID_SIZES[data.service].includes(data.size as never)) {
     return NextResponse.json({ error: 'Invalid size for service' }, { status: 400 });
   }
 
   try {
-    // Reject if date is blocked
     const blocked = await prisma.blockedDate.findUnique({ where: { date: data.date } });
     if (blocked) {
       return NextResponse.json({ error: 'Selected date is unavailable' }, { status: 409 });
     }
 
-    // Authoritative price calculation
-    const baseRate = (GT_PRICES[data.service] as Record<string, number>)[data.size];
-    const total = data.service === 'lorry' ? baseRate * data.days : baseRate;
+    // Server-authoritative pricing — clients never decide the total.
+    const { total, needsQuote } = computeBookingPrice({
+      service: data.service,
+      size: data.size,
+      city: data.city,
+      days: data.days,
+    });
 
-    // Generate next ref
     const existing = await prisma.booking.findMany({ select: { id: true } });
     const id = gtNextRef(existing.map((b) => b.id));
 
@@ -77,6 +83,8 @@ export async function POST(req: NextRequest) {
         customer: data.name,
         phone: data.phone,
         address: data.address,
+        city: data.city,
+        state: data.state,
         service: data.service,
         size: data.size,
         waste: data.waste,
@@ -85,12 +93,12 @@ export async function POST(req: NextRequest) {
         days: data.days,
         notes: data.notes,
         total,
+        needsQuote,
         status: isAdmin && data.status ? data.status : 'pending',
         payment: isAdmin && data.payment ? data.payment : 'unpaid',
       },
     });
 
-    // Best-effort email — failure does not block booking creation.
     if (process.env.RESEND_DEFAULT_BCC) {
       sendBookingConfirmation(process.env.RESEND_DEFAULT_BCC, {
         ...created,

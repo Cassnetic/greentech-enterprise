@@ -1,5 +1,14 @@
 import { Resend } from 'resend';
-import { BookingDTO, GT_SIZE_LABELS, GT_WINDOWS, GT_WASTE } from './constants';
+import {
+  BookingDTO,
+  GT_COUNTRY,
+  GT_SIZE_LABELS,
+  GT_WASTE,
+  GT_WHATSAPP_NAME,
+  GT_WINDOWS,
+  LorrySize,
+  RoroSize,
+} from './constants';
 import { gtFormatDate, gtFormatMoney } from './format';
 
 let cached: Resend | null = null;
@@ -26,31 +35,41 @@ export async function sendBookingConfirmation(
 
   const sizeLabel =
     booking.service === 'roro'
-      ? `Roll-on/Roll-off Bin · ${GT_SIZE_LABELS.roro[booking.size as keyof typeof GT_SIZE_LABELS.roro]}`
-      : `Lorry Delta · ${GT_SIZE_LABELS.lorry[booking.size as keyof typeof GT_SIZE_LABELS.lorry]}${
+      ? `Roll-on/Roll-off Bin · ${GT_SIZE_LABELS.roro[booking.size as RoroSize] ?? booking.size}`
+      : `${GT_SIZE_LABELS.lorry[booking.size as LorrySize] ?? booking.size}${
           booking.days > 1 ? ` × ${booking.days} days` : ''
         }`;
   const waste = GT_WASTE.find((w) => w.id === booking.waste)?.label || booking.waste;
   const window = GT_WINDOWS.find((w) => w.id === booking.window)?.label || booking.window;
+  const fullAddress = [booking.address, booking.city, booking.state, GT_COUNTRY]
+    .filter(Boolean)
+    .join(', ');
+  const subject = booking.needsQuote
+    ? `GreenTech booking ${booking.id} — awaiting quote`
+    : `GreenTech booking ${booking.id} reserved`;
+  const totalRow = booking.needsQuote
+    ? `<p style="margin:14px 0 4px; font-size:16px;"><strong>Total:</strong> Quote pending — ${GT_WHATSAPP_NAME} will confirm.</p>`
+    : `<p style="margin:14px 0 4px; font-size:18px;"><strong>Total:</strong> ${escapeHtml(gtFormatMoney(booking.total))}</p>`;
+  const nextStep = booking.needsQuote
+    ? `<p style="color:#475048; margin:18px 0 6px;">Your delivery zone is outstation — published rates don't cover it. ${GT_WHATSAPP_NAME} will WhatsApp you with a quote shortly. Booking ref <strong>${escapeHtml(booking.id)}</strong>.</p>`
+    : `<p style="color:#475048; margin:18px 0 6px;">Transfer to Maybank <strong>5141 2233 7788</strong>, ref <strong>${escapeHtml(booking.id)}</strong>, then upload your receipt at your confirmation page.</p>`;
 
   const html = `
     <div style="font-family: 'DM Sans', system-ui, sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
       <h2 style="margin:0 0 6px;">Thanks, ${escapeHtml(booking.customer.split(' ')[0])}!</h2>
       <p style="color:#475048; margin:0 0 18px;">
-        Your booking <strong>${escapeHtml(booking.id)}</strong> is reserved. Complete bank transfer to confirm.
+        Your booking <strong>${escapeHtml(booking.id)}</strong> ${booking.needsQuote ? 'is received — pricing pending.' : 'is reserved. Complete bank transfer to confirm.'}
       </p>
       <div style="background:#fbfaf6; border:1px solid #e8e5dc; border-radius:10px; padding:18px;">
         <p style="margin:4px 0;"><strong>Service:</strong> ${escapeHtml(sizeLabel)}</p>
         <p style="margin:4px 0;"><strong>Waste:</strong> ${escapeHtml(waste)}</p>
         <p style="margin:4px 0;"><strong>Date:</strong> ${escapeHtml(gtFormatDate(booking.date))} · ${escapeHtml(window)}</p>
-        <p style="margin:4px 0;"><strong>Delivery:</strong> ${escapeHtml(booking.address)}</p>
-        <p style="margin:14px 0 4px; font-size:18px;"><strong>Total:</strong> ${escapeHtml(gtFormatMoney(booking.total))}</p>
+        <p style="margin:4px 0;"><strong>Delivery:</strong> ${escapeHtml(fullAddress)}</p>
+        ${totalRow}
       </div>
-      <p style="color:#475048; margin:18px 0 6px;">Transfer to Maybank <strong>5141 2233 7788</strong>, ref <strong>${escapeHtml(
-        booking.id,
-      )}</strong>, then upload your receipt at your confirmation page.</p>
+      ${nextStep}
       <p style="color:#7d857d; font-size:12px; margin-top:24px;">
-        Questions? Cassey · +60 14-557 5208 · Mon–Sat, 8am–6pm
+        Questions? ${GT_WHATSAPP_NAME} · +60 14-557 5208 · Mon–Sat, 8am–6pm
       </p>
     </div>
   `;
@@ -59,7 +78,7 @@ export async function sendBookingConfirmation(
     const { data, error } = await client.emails.send({
       from,
       to: email,
-      subject: `GreenTech booking ${booking.id} reserved`,
+      subject,
       html,
     });
     if (error) {

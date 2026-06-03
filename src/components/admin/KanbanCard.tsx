@@ -2,7 +2,7 @@
 
 import { Icon } from '../ui/Icon';
 import { Pill } from '../ui/Pill';
-import { BookingDTO, GT_SIZE_LABELS } from '@/lib/constants';
+import { BookingDTO, GT_SIZE_LABELS_SHORT, LorrySize, RoroSize } from '@/lib/constants';
 import { gtFormatDateShort, gtFormatMoney } from '@/lib/format';
 
 interface Props {
@@ -16,10 +16,11 @@ interface Props {
 export function KanbanCard({ booking: b, onClick, onDragStart, onDragEnd, dragging }: Props) {
   const sizeLabel =
     b.service === 'roro'
-      ? `Roll-off · ${GT_SIZE_LABELS.roro[b.size as keyof typeof GT_SIZE_LABELS.roro]}`
-      : `Lorry · ${GT_SIZE_LABELS.lorry[b.size as keyof typeof GT_SIZE_LABELS.lorry]}${
+      ? `Roll-off · ${GT_SIZE_LABELS_SHORT.roro[b.size as RoroSize] ?? b.size}`
+      : `Lorry · ${GT_SIZE_LABELS_SHORT.lorry[b.size as LorrySize] ?? b.size}${
           b.days > 1 ? ' × ' + b.days + 'd' : ''
         }`;
+  const locationLabel = b.city || b.address.split(',')[0]?.trim() || '—';
   const paymentTone =
     b.payment === 'paid' ? 'accent' : b.payment === 'review' ? 'amber' : b.payment === 'unpaid' ? 'warn' : 'default';
 
@@ -67,6 +68,19 @@ export function KanbanCard({ booking: b, onClick, onDragStart, onDragEnd, draggi
       </div>
       <div
         style={{
+          fontSize: 11,
+          color: 'var(--gt-ink-3)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 4,
+          marginTop: 2,
+        }}
+      >
+        <Icon name="pin" size={11} />
+        {locationLabel}
+      </div>
+      <div
+        style={{
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -74,9 +88,13 @@ export function KanbanCard({ booking: b, onClick, onDragStart, onDragEnd, draggi
         }}
       >
         <Pill tone={paymentTone}>{b.payment}</Pill>
-        <span className="gt-mono" style={{ fontSize: 12, fontWeight: 600 }}>
-          {gtFormatMoney(b.total)}
-        </span>
+        {b.needsQuote ? (
+          <Pill tone="amber">Quote</Pill>
+        ) : (
+          <span className="gt-mono" style={{ fontSize: 12, fontWeight: 600 }}>
+            {gtFormatMoney(b.total)}
+          </span>
+        )}
       </div>
     </div>
   );

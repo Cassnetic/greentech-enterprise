@@ -43,23 +43,26 @@ enum BlockScope {
 }
 
 model Booking {
-  id        String        @id // e.g. "GT-0185"
-  customer  String
-  phone     String
-  address   String
-  service   Service
-  size      String // "10yd" | "20yd" | "40yd" | "1T" | "3T" | "5T"
-  waste     WasteType
-  date      String // ISO YYYY-MM-DD (local date, no TZ ambiguity)
-  window    BookingWindow
-  days      Int           @default(1)
-  notes     String        @default("")
-  total     Int // RM, integer
-  status    BookingStatus @default(pending)
-  payment   PaymentStatus @default(unpaid)
-  proofUrl  String?
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id         String        @id // e.g. "GT-0185"
+  customer   String
+  phone      String
+  address    String // street line
+  city       String        @default("")
+  state      String        @default("")
+  service    Service
+  size       String // 'std' (roro) | 'small' | 'cargoarm' (lorry)
+  waste      WasteType
+  date       String // ISO YYYY-MM-DD (local date, no TZ ambiguity)
+  window     BookingWindow
+  days       Int           @default(1)
+  notes      String        @default("")
+  total      Int // RM, integer. 0 when needsQuote.
+  needsQuote Boolean       @default(false) // true → outstation, price pending Cassey
+  status     BookingStatus @default(pending)
+  payment    PaymentStatus @default(unpaid)
+  proofUrl   String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 
   @@index([date])
   @@index([status])

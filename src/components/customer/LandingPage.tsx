@@ -103,22 +103,24 @@ export function LandingPage() {
                   />
                 </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Icon name="box" size={18} color="var(--gt-accent)" />
-                      <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Roll-on/Roll-off Bin</h3>
-                    </div>
-                    <div style={{ fontFamily: 'var(--gt-mono)', fontSize: 13, color: 'var(--gt-ink-2)' }}>
-                      from RM 850
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Icon name="box" size={18} color="var(--gt-accent)" />
+                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Roll-on/Roll-off Bin</h3>
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--gt-ink-3)' }}>
                     Drop-and-leave construction skip. We deliver, you fill, we collect.
                   </div>
+                  <div className="font-mono text-[12.5px] text-ink-2 flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+                    <span>Kota Kinabalu <span className="text-ink font-semibold">RM 350</span></span>
+                    <span>Penampang <span className="text-ink font-semibold">RM 300</span></span>
+                  </div>
+                  <div className="text-[11px] text-ink-3 leading-tight">
+                    Outstation? Quote on request — WhatsApp Cassey.
+                  </div>
                   <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                    <Pill>8 m³</Pill>
-                    <Pill>15 m³</Pill>
-                    <Pill>30 m³</Pill>
+                    <Pill>~5 m³</Pill>
+                    <Pill>2 × 7 × 12 ft</Pill>
+                    <Pill tone="amber">10 in fleet</Pill>
                   </div>
                 </div>
               </div>
@@ -140,22 +142,24 @@ export function LandingPage() {
                   />
                 </div>
                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <Icon name="truck" size={18} color="var(--gt-accent)" />
-                      <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Lorry Delta</h3>
-                    </div>
-                    <div style={{ fontFamily: 'var(--gt-mono)', fontSize: 13, color: 'var(--gt-ink-2)' }}>
-                      from RM 380 / day
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Icon name="truck" size={18} color="var(--gt-accent)" />
+                    <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Lorry Delta</h3>
                   </div>
                   <div style={{ fontSize: 13, color: 'var(--gt-ink-3)' }}>
                     Daily lorry rental with driver. Pickup, moving, transport.
                   </div>
+                  <div className="font-mono text-[12.5px] text-ink-2 flex flex-wrap gap-x-3 gap-y-0.5 mt-1.5">
+                    <span>Small 1.5 t <span className="text-ink font-semibold">RM 500 / day</span></span>
+                    <span>Cargo arm 3 t <span className="text-ink font-semibold">RM 700 / day</span></span>
+                  </div>
+                  <div className="text-[11px] text-ink-3 leading-tight">
+                    KK zone · outstation quote on request.
+                  </div>
                   <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
-                    <Pill>1 tonne</Pill>
-                    <Pill>3 tonnes</Pill>
-                    <Pill>5 tonnes</Pill>
+                    <Pill>1.5 tonne</Pill>
+                    <Pill>3 tonne</Pill>
+                    <Pill tone="amber">w/ driver</Pill>
                   </div>
                 </div>
               </div>

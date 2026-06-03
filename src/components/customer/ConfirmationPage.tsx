@@ -7,8 +7,18 @@ import { Btn } from '../ui/Btn';
 import { Icon } from '../ui/Icon';
 import { Pill } from '../ui/Pill';
 import { Toast } from '../ui/Toast';
-import { BookingDTO, GT_SIZE_LABELS, GT_WASTE, GT_WINDOWS } from '@/lib/constants';
+import {
+  BookingDTO,
+  GT_COUNTRY,
+  GT_SIZE_LABELS,
+  GT_WASTE,
+  GT_WHATSAPP_NAME,
+  GT_WINDOWS,
+  LorrySize,
+  RoroSize,
+} from '@/lib/constants';
 import { gtFormatDate, gtFormatMoney } from '@/lib/format';
+import { quoteWhatsAppUrl } from '@/lib/pricing';
 
 interface Props {
   initialBooking: BookingDTO;
@@ -23,12 +33,23 @@ export function ConfirmationPage({ initialBooking }: Props) {
 
   const serviceLine =
     booking.service === 'roro'
-      ? `Roll-on/Roll-off Bin · ${GT_SIZE_LABELS.roro[booking.size as keyof typeof GT_SIZE_LABELS.roro]}`
-      : `Lorry Delta · ${GT_SIZE_LABELS.lorry[booking.size as keyof typeof GT_SIZE_LABELS.lorry]}${
+      ? `Roll-on/Roll-off Bin · ${GT_SIZE_LABELS.roro[booking.size as RoroSize] ?? booking.size}`
+      : `${GT_SIZE_LABELS.lorry[booking.size as LorrySize] ?? booking.size}${
           booking.days > 1 ? ` × ${booking.days} days` : ''
         }`;
   const wasteLabel = GT_WASTE.find((w) => w.id === booking.waste)?.label || booking.waste;
   const windowLabel = GT_WINDOWS.find((w) => w.id === booking.window)?.label.split(' ')[0] || booking.window;
+  const deliveryLine = [booking.address, booking.city, booking.state, GT_COUNTRY]
+    .filter(Boolean)
+    .join(', ');
+  const whatsappHref = quoteWhatsAppUrl({
+    service: booking.service,
+    size: booking.size,
+    city: booking.city,
+    state: booking.state,
+    date: booking.date,
+    bookingRef: booking.id,
+  });
 
   const onUploaded = (proofUrl: string) => {
     setBooking((b) => ({ ...b, proofUrl, payment: 'review' }));
@@ -108,7 +129,7 @@ export function ConfirmationPage({ initialBooking }: Props) {
                 ['Service', serviceLine],
                 ['Waste type', wasteLabel],
                 ['Date', `${gtFormatDate(booking.date)} · ${windowLabel}`],
-                ['Delivery to', booking.address],
+                ['Delivery to', deliveryLine],
                 ['Contact', `${booking.customer} · ${booking.phone}`],
               ] as const
             ).map(([k, v]) => (
@@ -133,13 +154,47 @@ export function ConfirmationPage({ initialBooking }: Props) {
               >
                 Total due
               </div>
-              <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: '-0.01em' }}>
-                {gtFormatMoney(booking.total)}
-              </div>
+              {booking.needsQuote ? (
+                <div className="flex flex-col items-end gap-0.5">
+                  <span className="text-[18px] font-bold tracking-[-0.01em]">Quote pending</span>
+                  <span className="text-[11px] text-ink-3">
+                    {GT_WHATSAPP_NAME} will confirm pricing
+                  </span>
+                </div>
+              ) : (
+                <div className="text-[26px] font-bold tracking-[-0.01em]">
+                  {gtFormatMoney(booking.total)}
+                </div>
+              )}
             </div>
           </div>
 
-          {!booking.proofUrl ? (
+          {booking.needsQuote ? (
+            <div className="gt-card gt-card--accent p-4 md:p-[18px] flex flex-col md:flex-row md:items-center gap-3 md:gap-3.5">
+              <div className="flex items-center gap-3 md:gap-3.5 flex-1 min-w-0">
+                <div className="w-9 h-9 rounded-full bg-amber text-white flex items-center justify-center shrink-0 font-bold">
+                  ?
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-accent-2">
+                    Outstation — {GT_WHATSAPP_NAME} will confirm the price
+                  </div>
+                  <div className="text-xs text-ink-2">
+                    Message {GT_WHATSAPP_NAME} on WhatsApp to speed things up — ref{' '}
+                    <span className="gt-mono">{booking.id}</span>
+                  </div>
+                </div>
+              </div>
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="gt-btn gt-btn--primary gt-btn--full md:!w-auto"
+              >
+                <Icon name="phone" size={14} /> Message {GT_WHATSAPP_NAME}
+              </a>
+            </div>
+          ) : !booking.proofUrl ? (
             <div className="gt-card gt-card--accent p-4 md:p-[18px] flex flex-col md:flex-row md:items-center gap-3 md:gap-3.5">
               <div className="flex items-center gap-3 md:gap-3.5 flex-1 min-w-0">
                 <div className="w-9 h-9 rounded-full bg-accent text-white flex items-center justify-center shrink-0 font-bold">

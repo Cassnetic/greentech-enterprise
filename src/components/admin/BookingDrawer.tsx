@@ -5,8 +5,19 @@ import { Btn } from '../ui/Btn';
 import { Icon } from '../ui/Icon';
 import { ImgSlot } from '../ui/ImgSlot';
 import { Pill, StatusPill } from '../ui/Pill';
-import { BookingDTO, BookingStatus, GT_SIZE_LABELS, GT_WASTE, GT_WINDOWS } from '@/lib/constants';
+import {
+  BookingDTO,
+  BookingStatus,
+  GT_COUNTRY,
+  GT_SIZE_LABELS,
+  GT_WASTE,
+  GT_WHATSAPP_NAME,
+  GT_WINDOWS,
+  LorrySize,
+  RoroSize,
+} from '@/lib/constants';
 import { gtFormatDate, gtFormatMoney } from '@/lib/format';
+import { quoteWhatsAppUrl } from '@/lib/pricing';
 
 interface Props {
   booking: BookingDTO;
@@ -20,14 +31,23 @@ const STATUS_ORDER: BookingStatus[] = ['pending', 'confirmed', 'completed', 'can
 export function BookingDrawer({ booking: b, onClose, onStatusChange, onVerify }: Props) {
   const serviceLine =
     b.service === 'roro'
-      ? `Roll-on/Roll-off Bin · ${GT_SIZE_LABELS.roro[b.size as keyof typeof GT_SIZE_LABELS.roro]}`
-      : `Lorry Delta · ${GT_SIZE_LABELS.lorry[b.size as keyof typeof GT_SIZE_LABELS.lorry]}${
+      ? `Roll-on/Roll-off Bin · ${GT_SIZE_LABELS.roro[b.size as RoroSize] ?? b.size}`
+      : `${GT_SIZE_LABELS.lorry[b.size as LorrySize] ?? b.size}${
           b.days > 1 ? ' × ' + b.days + ' days' : ''
         }`;
   const wasteLabel = GT_WASTE.find((w) => w.id === b.waste)?.label || b.waste;
   const windowLabel = GT_WINDOWS.find((w) => w.id === b.window)?.label || b.window;
   const paymentTone =
     b.payment === 'paid' ? 'accent' : b.payment === 'review' ? 'amber' : b.payment === 'unpaid' ? 'warn' : 'default';
+  const fullAddress = [b.address, b.city, b.state, GT_COUNTRY].filter(Boolean).join(', ');
+  const whatsappHref = quoteWhatsAppUrl({
+    service: b.service,
+    size: b.size,
+    city: b.city,
+    state: b.state,
+    date: b.date,
+    bookingRef: b.id,
+  });
 
   return (
     <Fragment>
@@ -164,7 +184,7 @@ export function BookingDrawer({ booking: b, onClose, onStatusChange, onVerify }:
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
               <Icon name="pin" size={14} color="var(--gt-ink-3)" />
-              <span style={{ fontSize: 13 }}>{b.address}</span>
+              <span style={{ fontSize: 13 }}>{fullAddress}</span>
             </div>
           </div>
 
@@ -243,8 +263,22 @@ export function BookingDrawer({ booking: b, onClose, onStatusChange, onVerify }:
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <span style={{ fontSize: 12, color: 'var(--gt-ink-3)' }}>Total</span>
-              <span style={{ fontSize: 22, fontWeight: 700 }}>{gtFormatMoney(b.total)}</span>
+              {b.needsQuote ? (
+                <span className="text-[16px] font-bold text-amber">Quote pending</span>
+              ) : (
+                <span style={{ fontSize: 22, fontWeight: 700 }}>{gtFormatMoney(b.total)}</span>
+              )}
             </div>
+            {b.needsQuote && (
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="gt-btn gt-btn--sm gt-btn--full"
+              >
+                <Icon name="phone" size={12} /> Message {GT_WHATSAPP_NAME} on WhatsApp
+              </a>
+            )}
             {b.proofUrl ? (
               <Fragment>
                 <ImgSlot label={b.proofUrl.startsWith('http') ? 'View proof' : b.proofUrl} height={120} />

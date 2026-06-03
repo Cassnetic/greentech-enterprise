@@ -3,22 +3,51 @@ import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
-const SEED_BOOKINGS = [
+// Sizes follow new catalogue:
+//   roro:  'std' (only)
+//   lorry: 'small' (1.5 tonne) | 'cargoarm' (3 tonne)
+// Prices reflect KK/Penampang zone pricing; outstation seeded with needsQuote=true, total=0.
+
+type SeedBooking = {
+  id: string;
+  date: string;
+  customer: string;
+  phone: string;
+  address: string;
+  city: string;
+  state: string;
+  service: 'roro' | 'lorry';
+  size: 'std' | 'small' | 'cargoarm';
+  waste: 'general' | 'construction';
+  window: 'am' | 'pm' | 'flex';
+  days: number;
+  notes: string;
+  total: number;
+  needsQuote: boolean;
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
+  payment: 'unpaid' | 'review' | 'paid';
+  proofUrl: string | null;
+};
+
+const SEED_BOOKINGS: SeedBooking[] = [
   {
     id: 'GT-0180',
     date: '2026-06-06',
     customer: 'Ravi Kumar',
     phone: '+60 12 421 3398',
-    address: 'Lot 12, Jln Lintas, 88300 Likas, Kota Kinabalu, Sabah',
-    service: 'roro' as const,
-    size: '40yd',
-    waste: 'construction' as const,
-    window: 'am' as const,
+    address: 'Lot 12, Jln Lintas',
+    city: 'Kota Kinabalu',
+    state: 'Sabah',
+    service: 'roro',
+    size: 'std',
+    waste: 'construction',
+    window: 'am',
     days: 1,
     notes: 'Crane access from north side. Site manager: Suresh.',
-    total: 1850,
-    status: 'completed' as const,
-    payment: 'paid' as const,
+    total: 350,
+    needsQuote: false,
+    status: 'completed',
+    payment: 'paid',
     proofUrl: 'maybank-receipt.jpg',
   },
   {
@@ -26,16 +55,19 @@ const SEED_BOOKINGS = [
     date: '2026-06-06',
     customer: 'Nor Aisyah',
     phone: '+60 11 2398 7711',
-    address: 'B-3-7, Apartmen Sri Putra, 88200 Putatan, Sabah',
-    service: 'lorry' as const,
-    size: '1T',
-    waste: 'general' as const,
-    window: 'flex' as const,
+    address: 'B-3-7, Apartmen Sri Putra',
+    city: 'Penampang',
+    state: 'Sabah',
+    service: 'lorry',
+    size: 'small',
+    waste: 'general',
+    window: 'flex',
     days: 1,
     notes: '',
-    total: 380,
-    status: 'completed' as const,
-    payment: 'paid' as const,
+    total: 500,
+    needsQuote: false,
+    status: 'completed',
+    payment: 'paid',
     proofUrl: 'cimb-receipt.pdf',
   },
   {
@@ -43,16 +75,19 @@ const SEED_BOOKINGS = [
     date: '2026-06-07',
     customer: 'Tan Beng Hock',
     phone: '+60 12 778 4421',
-    address: 'Lot 88, Kawasan Perindustrian KKIP, 88460 Kota Kinabalu, Sabah',
-    service: 'lorry' as const,
-    size: '5T',
-    waste: 'general' as const,
-    window: 'am' as const,
+    address: 'Lot 88, Kawasan Perindustrian KKIP',
+    city: 'Kota Kinabalu',
+    state: 'Sabah',
+    service: 'lorry',
+    size: 'cargoarm',
+    waste: 'general',
+    window: 'am',
     days: 2,
-    notes: '2-day rental, 7–8 June. Will tip driver directly.',
-    total: 1560,
-    status: 'pending' as const,
-    payment: 'review' as const,
+    notes: '2-day rental. Will tip driver directly.',
+    total: 1400, // 700 × 2 days
+    needsQuote: false,
+    status: 'pending',
+    payment: 'review',
     proofUrl: 'transfer-screenshot.png',
   },
   {
@@ -60,16 +95,19 @@ const SEED_BOOKINGS = [
     date: '2026-06-07',
     customer: 'Siti Rahmah',
     phone: '+60 19 663 4218',
-    address: 'No 12, Jln Kolam, 88400 Inanam, Kota Kinabalu, Sabah',
-    service: 'roro' as const,
-    size: '10yd',
-    waste: 'general' as const,
-    window: 'pm' as const,
+    address: 'No 12, Jln Kolam, Inanam',
+    city: 'Kota Kinabalu',
+    state: 'Sabah',
+    service: 'roro',
+    size: 'std',
+    waste: 'general',
+    window: 'pm',
     days: 1,
     notes: 'Driveway is narrow; please reverse in.',
-    total: 850,
-    status: 'confirmed' as const,
-    payment: 'paid' as const,
+    total: 350,
+    needsQuote: false,
+    status: 'confirmed',
+    payment: 'paid',
     proofUrl: 'maybank-2.jpg',
   },
   {
@@ -77,33 +115,39 @@ const SEED_BOOKINGS = [
     date: '2026-06-08',
     customer: 'Lim Wei Ling',
     phone: '+60 16 234 8821',
-    address: 'No 14, Jln Kuhara, 91000 Tawau, Sabah',
-    service: 'lorry' as const,
-    size: '3T',
-    waste: 'general' as const,
-    window: 'am' as const,
+    address: 'No 14, Jln Kuhara',
+    city: 'Tawau',
+    state: 'Sabah',
+    service: 'lorry',
+    size: 'cargoarm',
+    waste: 'general',
+    window: 'am',
     days: 1,
-    notes: 'Moving office furniture.',
-    total: 580,
-    status: 'confirmed' as const,
-    payment: 'paid' as const,
-    proofUrl: 'rhb-receipt.pdf',
+    notes: 'Moving office furniture. Outstation — awaiting Cassey to confirm price.',
+    total: 0,
+    needsQuote: true,
+    status: 'pending',
+    payment: 'unpaid',
+    proofUrl: null,
   },
   {
     id: 'GT-0184',
     date: '2026-06-08',
     customer: 'Ahmad Faizal',
     phone: '+60 14 557 5208',
-    address: 'Lot 23, Mile 4, Jln Sandakan, 90000 Sandakan, Sabah',
-    service: 'roro' as const,
-    size: '20yd',
-    waste: 'construction' as const,
-    window: 'am' as const,
+    address: 'Lot 23, Mile 4, Jln Sandakan',
+    city: 'Sandakan',
+    state: 'Sabah',
+    service: 'roro',
+    size: 'std',
+    waste: 'construction',
+    window: 'am',
     days: 1,
-    notes: 'Gate code 4421. Side access only.',
-    total: 1250,
-    status: 'pending' as const,
-    payment: 'unpaid' as const,
+    notes: 'Gate code 4421. Side access only. Outstation — awaiting Cassey quote.',
+    total: 0,
+    needsQuote: true,
+    status: 'pending',
+    payment: 'unpaid',
     proofUrl: null,
   },
 ];
@@ -127,10 +171,23 @@ async function main() {
   console.log(`✓ Admin user ${adminEmail}`);
 
   for (const b of SEED_BOOKINGS) {
-    // Upsert refreshes address/phone too so reseeding picks up demo-data tweaks.
+    // Upsert refreshes business fields so reseeding picks up catalogue/data tweaks.
     await prisma.booking.upsert({
       where: { id: b.id },
-      update: { customer: b.customer, phone: b.phone, address: b.address, notes: b.notes },
+      update: {
+        customer: b.customer,
+        phone: b.phone,
+        address: b.address,
+        city: b.city,
+        state: b.state,
+        size: b.size,
+        waste: b.waste,
+        window: b.window,
+        days: b.days,
+        notes: b.notes,
+        total: b.total,
+        needsQuote: b.needsQuote,
+      },
       create: b,
     });
   }
